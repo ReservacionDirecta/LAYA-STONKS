@@ -31,31 +31,86 @@
   :focus-visible { outline:2px solid var(--blue); outline-offset:1px; }
   @media (prefers-reduced-motion: reduce){ *,*::before,*::after { animation:none !important; transition:none !important; } }
 
-  /* Toast notification system */
+  /* Toast notification system (SaaS Glassmorphism & Progress Bar) */
   #toast-container {
-    position:fixed; bottom:20px; right:20px; z-index:999999;
-    display:flex; flex-direction:column; gap:8px; pointer-events:none;
+    position:fixed; bottom:24px; right:24px; z-index:999999;
+    display:flex; flex-direction:column-reverse; gap:10px; pointer-events:none;
   }
   .toast {
-    pointer-events:auto; min-width:240px; max-width:380px; padding:10px 14px;
-    background:var(--surface-3); border:1px solid var(--border-strong); border-radius:8px;
-    color:var(--text); font-size:12.5px; box-shadow:0 10px 28px rgba(0,0,0,0.45);
-    display:flex; align-items:center; gap:10px; animation:toastIn .25s ease-out;
+    pointer-events:auto; min-width:280px; max-width:420px; padding:12px 16px;
+    background:rgba(18, 22, 34, 0.92); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border:1px solid rgba(255, 255, 255, 0.12); border-radius:10px;
+    color:var(--text); font-size:12.5px; box-shadow:0 16px 36px rgba(0,0,0,0.55), 0 0 1px rgba(255,255,255,0.2);
+    display:flex; align-items:flex-start; gap:12px; position:relative; overflow:hidden;
+    animation:toastIn .28s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .toast.info { border-left:3px solid var(--blue); }
-  .toast.success { border-left:3px solid var(--green); }
-  .toast.error { border-left:3px solid var(--red); }
-  .toast.warning { border-left:3px solid var(--amber); }
-  @keyframes toastIn { from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:translateY(0); } }
-  @keyframes toastOut { from{ opacity:1; transform:translateY(0); } to{ opacity:0; transform:translateY(12px); } }
+  .toast.info { border-left:4px solid var(--blue); }
+  .toast.success { border-left:4px solid var(--green); box-shadow:0 8px 24px rgba(34,197,94,0.18), 0 16px 36px rgba(0,0,0,0.55); }
+  .toast.error { border-left:4px solid var(--red); box-shadow:0 8px 24px rgba(239,68,68,0.22), 0 16px 36px rgba(0,0,0,0.55); }
+  .toast.warning { border-left:4px solid var(--amber); }
+  .toast-progress {
+    position:absolute; bottom:0; left:0; height:3px; background:rgba(255,255,255,0.25);
+    width:100%; transform-origin:left; animation:toastProgress linear forwards;
+  }
+  .toast.success .toast-progress { background:var(--green); }
+  .toast.error .toast-progress { background:var(--red); }
+  .toast.warning .toast-progress { background:var(--amber); }
+  .toast.info .toast-progress { background:var(--blue); }
+
+  @keyframes toastIn { from{ opacity:0; transform:translateY(16px) scale(0.96); } to{ opacity:1; transform:translateY(0) scale(1); } }
+  @keyframes toastOut { from{ opacity:1; transform:translateY(0) scale(1); } to{ opacity:0; transform:translateY(14px) scale(0.94); } }
+  @keyframes toastProgress { from{ transform:scaleX(1); } to{ transform:scaleX(0); } }
+
+  /* Micro-animations: radar pulse, live glows and heartbeat badges */
+  @keyframes radar-pulse {
+    0% { transform:scale(0.95); opacity:0.85; box-shadow:0 0 0 0 rgba(34,197,94,0.7); }
+    70% { transform:scale(1); opacity:1; box-shadow:0 0 0 8px rgba(34,197,94,0); }
+    100% { transform:scale(0.95); opacity:0.85; box-shadow:0 0 0 0 rgba(34,197,94,0); }
+  }
+  @keyframes radar-pulse-blue {
+    0% { transform:scale(0.95); opacity:0.85; box-shadow:0 0 0 0 rgba(59,130,246,0.7); }
+    70% { transform:scale(1); opacity:1; box-shadow:0 0 0 8px rgba(59,130,246,0); }
+    100% { transform:scale(0.95); opacity:0.85; box-shadow:0 0 0 0 rgba(59,130,246,0); }
+  }
+  @keyframes badge-shimmer {
+    0% { opacity:0.7; transform:translateY(0); }
+    50% { opacity:1; transform:translateY(-1px); }
+    100% { opacity:0.7; transform:translateY(0); }
+  }
+  .live-dot-green {
+    width:8px; height:8px; border-radius:50%; background:var(--green);
+    animation:radar-pulse 2s infinite ease-in-out; display:inline-block;
+  }
+  .live-dot-blue {
+    width:8px; height:8px; border-radius:50%; background:var(--blue);
+    animation:radar-pulse-blue 2s infinite ease-in-out; display:inline-block;
+  }
+  .chip-pulse {
+    animation:badge-shimmer 2.5s infinite ease-in-out;
+  }
 
   /* Quick action buttons in tables */
   .act-btn {
-    padding:2px 7px; font-size:11px; border-radius:4px; border:1px solid var(--border-strong);
+    padding:3px 8px; font-size:11px; font-weight:600; border-radius:5px; border:1px solid var(--border-strong);
     background:var(--surface-3); color:var(--dim); cursor:pointer; transition:all var(--t);
   }
-  .act-btn:hover { color:var(--text); border-color:var(--blue); }
-  .act-btn.danger:hover { color:var(--red); border-color:var(--red); }
+  .act-btn:hover { color:var(--text); border-color:var(--blue); transform:translateY(-1px); }
+  .act-btn.danger:hover { color:var(--red); border-color:var(--red); background:rgba(239,68,68,0.1); }
+  .act-btn.primary { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .act-btn.primary:hover { opacity:0.9; }
+
+  /* Pill selector for hero views */
+  .view-pill-group {
+    display:inline-flex; background:var(--surface-3); border:1px solid var(--border);
+    border-radius:20px; padding:2px; gap:2px;
+  }
+  .view-pill {
+    padding:2px 10px; font-size:11px; font-weight:600; border-radius:16px; border:none;
+    background:transparent; color:var(--dim); cursor:pointer; transition:all 0.15s ease;
+  }
+  .view-pill.active {
+    background:var(--blue); color:#fff; box-shadow:0 2px 8px rgba(59,130,246,0.35);
+  }
 
   /* ---------- Banner Superior de Vision General ---------- */
   .hero-overview {
@@ -197,7 +252,20 @@
 
   /* ---------- layout principal ---------- */
   main { display:grid; grid-template-columns:1fr 340px; gap:12px; padding:12px 16px 32px; }
-  @media (max-width:1100px){ main { grid-template-columns:1fr; } }
+  @media (max-width:1100px){
+    main { grid-template-columns:1fr; }
+    .hero-overview { grid-template-columns:1fr; }
+  }
+  @media (max-width:768px){
+    .topbar { padding:8px 12px; gap:8px; }
+    .hero-overview { padding:8px 10px 0; }
+    main { padding:8px 10px 24px; gap:10px; }
+    .ind-strip-grid { grid-template-columns:repeat(2, 1fr); }
+    .pos-card-grid { grid-template-columns:1fr; }
+    .tabs button { padding:6px 10px; font-size:11.5px; }
+    #toast-container { left:12px; right:12px; bottom:12px; }
+    .toast { min-width:auto; max-width:100%; }
+  }
   .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; }
   .card + .card { margin-top:12px; }
   .card h3 { margin:0 0 10px; font-size:11px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; color:var(--dim); }
@@ -394,60 +462,66 @@
 <main>
   <!-- =========================== HERO OVERVIEW: OPERACIONES ACTIVAS & INDICADORES =========================== -->
   <section class="hero-overview" id="hero-overview" style="grid-column: 1 / -1; width:100%; box-sizing:border-box;">
-    <!-- Columna 1: Operaciones Activas -->
+    <!-- Columna 1: Operaciones Activas con selector Multi-Sim / Flota -->
     <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; gap:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:6px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; align-items:center; gap:8px;">
-          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 6px var(--green);"></span>
-          <b style="font-size:12px; letter-spacing:0.5px; text-transform:uppercase;">Operaciones Activas (Posiciones en Riesgo)</b>
+          <span class="live-dot-green"></span>
+          <b style="font-size:12px; letter-spacing:0.5px; text-transform:uppercase;">Operaciones en Riesgo</b>
+          <div class="view-pill-group" style="margin-left:6px;">
+            <button class="view-pill active" id="hero-tab-sim" onclick="setHeroPosFilter('sim')">Simulador Activo</button>
+            <button class="view-pill" id="hero-tab-fleet" onclick="setHeroPosFilter('fleet')">Toda la Flota</button>
+          </div>
         </div>
-        <span id="hero-pos-summary" style="font-size:11px; font-family:var(--mono); color:var(--dim);">0 abiertas</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span id="hero-pos-summary" style="font-size:11px; font-family:var(--mono); color:var(--dim);">0 abiertas</span>
+        </div>
       </div>
       <div id="hero-positions-container" class="pos-card-grid">
         <div class="empty" style="padding:14px; font-size:12px; border-radius:var(--radius-sm); border:1px dashed var(--border); width:100%; grid-column:1 / -1;">
-          Sin posiciones abiertas — Esperando setup válido de entrada
+          Sin posiciones abiertas &bull; Esperando setup v&aacute;lido de entrada
         </div>
       </div>
     </div>
 
-    <!-- Columna 2: Indicadores Clave en Vivo -->
+    <!-- Columna 2: Indicadores Clave en Vivo con micro-animaciones -->
     <div class="card" style="margin-bottom:0; display:flex; flex-direction:column; gap:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:6px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:8px; flex-wrap:wrap; gap:8px;">
         <div style="display:flex; align-items:center; gap:8px;">
-          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--blue); box-shadow:0 0 6px var(--blue);"></span>
-          <b style="font-size:12px; letter-spacing:0.5px; text-transform:uppercase;">Indicadores Clave en Vivo · <span id="hero-ind-pair" style="color:var(--text); font-family:var(--mono);">BTCUSDT</span></b>
+          <span class="live-dot-blue"></span>
+          <b style="font-size:12px; letter-spacing:0.5px; text-transform:uppercase;">An&aacute;lisis Clave en Vivo &bull; <span id="hero-ind-pair" style="color:var(--text); font-family:var(--mono);">BTCUSDT</span></b>
         </div>
-        <span id="hero-price-display" style="font-size:12px; font-family:var(--mono); font-weight:700; color:var(--text);">$—</span>
+        <span id="hero-price-display" style="font-size:12.5px; font-family:var(--mono); font-weight:700; color:var(--text);">$--</span>
       </div>
       <div id="hero-indicators-container" class="ind-strip-grid">
-        <div class="ind-chip">
+        <div class="ind-chip" id="chip-rsi">
           <div class="lbl">RSI (14)</div>
-          <div class="val" id="hero-val-rsi">—</div>
+          <div class="val" id="hero-val-rsi">--</div>
           <div class="sub" id="hero-sub-rsi">Neutral</div>
         </div>
-        <div class="ind-chip">
+        <div class="ind-chip" id="chip-ema">
           <div class="lbl">EMAs (9 / 21)</div>
-          <div class="val" id="hero-val-ema">—</div>
+          <div class="val" id="hero-val-ema">--</div>
           <div class="sub" id="hero-sub-ema">Cruzando</div>
         </div>
-        <div class="ind-chip">
+        <div class="ind-chip" id="chip-atr">
           <div class="lbl">Volatilidad ATR</div>
-          <div class="val" id="hero-val-atr">—</div>
+          <div class="val" id="hero-val-atr">--</div>
           <div class="sub" id="hero-sub-atr">Normal</div>
         </div>
-        <div class="ind-chip">
+        <div class="ind-chip" id="chip-mtf">
           <div class="lbl">Sesgo MTF (1h)</div>
-          <div class="val" id="hero-val-mtf" style="color:var(--green);">—</div>
+          <div class="val" id="hero-val-mtf" style="color:var(--green);">--</div>
           <div class="sub" id="hero-sub-mtf">Filtro activo</div>
         </div>
-        <div class="ind-chip">
+        <div class="ind-chip" id="chip-fng">
           <div class="lbl">Sentimiento F&G</div>
-          <div class="val" id="hero-val-fng">—</div>
+          <div class="val" id="hero-val-fng">--</div>
           <div class="sub" id="hero-sub-fng">Index</div>
         </div>
-        <div class="ind-chip">
+        <div class="ind-chip chip-pulse" id="chip-sys1">
           <div class="lbl">System 1 / Quant</div>
-          <div class="val" id="hero-val-sys1">—</div>
+          <div class="val" id="hero-val-sys1">--</div>
           <div class="sub" id="hero-sub-sys1">Puntaje</div>
         </div>
       </div>
@@ -628,7 +702,26 @@ function fmtPrice(p){ if (p==null||isNaN(p)) return '—'; return '$'+fmt(p, p>=
 function fmtClock(iso){ if (!iso) return '—'; return new Date(iso).toLocaleTimeString('es',{hour12:false}); }
 function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-function showToast(msg, type='info', duration=3500){
+let heroPosMode = 'sim'; // 'sim' o 'fleet'
+let lastFleetPositions = [];
+let fleetCacheTimer = 0;
+let prevHistoryIds = null;
+let prevPositionsCount = null;
+
+function setHeroPosFilter(mode){
+  heroPosMode = mode;
+  const bSim = $('hero-tab-sim');
+  const bFleet = $('hero-tab-fleet');
+  if (bSim) bSim.className = 'view-pill ' + (mode === 'sim' ? 'active' : '');
+  if (bFleet) bFleet.className = 'view-pill ' + (mode === 'fleet' ? 'active' : '');
+  if (window.SNAP) {
+    const curPos = (window.SNAP.positions && window.SNAP.positions.length) ? window.SNAP.positions[0] : (window.SNAP.position || null);
+    const posMap = window.SNAP.positions_map || {};
+    renderHeroOverview(window.SNAP, posMap, curPos);
+  }
+}
+
+function showToast(msg, type='info', duration=4000){
   let tc = $('toast-container');
   if (!tc){
     tc = document.createElement('div');
@@ -637,8 +730,17 @@ function showToast(msg, type='info', duration=3500){
   }
   const t = document.createElement('div');
   t.className = 'toast ' + type;
-  const icons = { info:'ℹ️', success:'✅', error:'❌', warning:'⚠️' };
-  t.innerHTML = '<span>' + (icons[type]||'•') + '</span><span style="flex:1;">' + escapeHtml(msg) + '</span>';
+  const icons = {
+    info: '&#9432;',
+    success: '&#10004;',
+    error: '&#10006;',
+    warning: '&#9888;'
+  };
+  t.innerHTML = '<span style="font-size:15px; font-weight:700; line-height:1;">' + (icons[type]||'&#9432;') + '</span>' +
+    '<div style="flex:1; display:flex; flex-direction:column; gap:2px;">' +
+      '<span style="font-weight:500;">' + escapeHtml(msg) + '</span>' +
+    '</div>' +
+    '<div class="toast-progress" style="animation-duration:' + duration + 'ms;"></div>';
   tc.appendChild(t);
   setTimeout(() => {
     t.style.animation = 'toastOut .25s ease-in forwards';
@@ -1771,34 +1873,60 @@ function renderHeroOverview(snap, positionsMap, currentPos){
   if (!posCont) return;
 
   // 1. Renderizar Operaciones Activas
-  // Agrupar todas las posiciones activas: del multi-moneda o de la posición actual
-  const allPositions = [];
-  if (positionsMap && Object.keys(positionsMap).length > 0){
-    Object.values(positionsMap).forEach(p => { if (p && p.pair) allPositions.push(p); });
-  } else if (currentPos && currentPos.pair){
-    allPositions.push(currentPos);
+  let displayPositions = [];
+
+  if (heroPosMode === 'fleet'){
+    // Modo Flota: recolectar de lastFleetPositions o snap.simulators
+    if (lastFleetPositions && lastFleetPositions.length > 0){
+      displayPositions = lastFleetPositions;
+    } else {
+      (snap.simulators || []).forEach(s => {
+        if (s.positions && Array.isArray(s.positions)){
+          s.positions.forEach(p => {
+            if (p && p.pair) {
+              displayPositions.push(Object.assign({}, p, { sim_id: s.id, sim_name: s.name }));
+            }
+          });
+        }
+      });
+    }
+  } else {
+    // Modo Simulador Activo
+    if (positionsMap && Object.keys(positionsMap).length > 0){
+      Object.values(positionsMap).forEach(p => { if (p && p.pair) displayPositions.push(p); });
+    } else if (currentPos && currentPos.pair){
+      displayPositions.push(currentPos);
+    }
   }
+
+  // Notificar cambios de posición via Toast si hay nuevas aperturas
+  if (prevPositionsCount !== null && displayPositions.length > prevPositionsCount && heroPosMode === 'sim'){
+    showToast('Nueva operacion abierta en ' + (displayPositions[displayPositions.length-1].pair || 'mercado'), 'success');
+  }
+  prevPositionsCount = displayPositions.length;
 
   if (posSummary) {
-    posSummary.textContent = allPositions.length + (allPositions.length === 1 ? ' abierta' : ' abiertas');
-    posSummary.style.color = allPositions.length > 0 ? 'var(--green)' : 'var(--dim)';
+    const sName = heroPosMode === 'fleet' ? 'Flota completa' : (snap.active_name || 'Sim actual');
+    posSummary.textContent = displayPositions.length + (displayPositions.length === 1 ? ' abierta (' : ' abiertas (') + sName + ')';
+    posSummary.style.color = displayPositions.length > 0 ? 'var(--green)' : 'var(--dim)';
   }
 
-  if (allPositions.length === 0){
+  if (displayPositions.length === 0){
     posCont.innerHTML = '<div class="empty" style="padding:14px; font-size:12px; border-radius:var(--radius-sm); border:1px dashed var(--border); width:100%; grid-column:1 / -1;">' +
-      'Sin posiciones abiertas — Esperando setup válido de entrada' +
+      (heroPosMode === 'fleet' ? 'Sin posiciones abiertas en ning&uacute;n simulador de la flota' : 'Sin posiciones abiertas en este simulador &bull; Esperando setup v&aacute;lido') +
     '</div>';
   } else {
-    posCont.innerHTML = allPositions.map(p => {
+    posCont.innerHTML = displayPositions.map(p => {
       const pnlVal = p.pnl || 0;
       const pnlSign = pnlVal >= 0 ? '+' : '';
       const pnlClass = pnlVal > 0 ? 'pos' : (pnlVal < 0 ? 'neg' : '');
       const lev = p.leverage || 1;
       const px = p.price || snap.price || p.entry;
+      const simLabel = p.sim_name ? '<span class="tag faint" style="font-size:9.5px; max-width:85px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escapeHtml(p.sim_name) + '</span>' : '';
       
       // Distancias a SL y TP
-      let distSL = '—';
-      let distTP = '—';
+      let distSL = '--';
+      let distTP = '--';
       if (p.sl && px) {
         const d = ((p.sl - px) / px) * 100;
         distSL = (d >= 0 ? '+' : '') + d.toFixed(2) + '%';
@@ -1808,11 +1936,14 @@ function renderHeroOverview(snap, positionsMap, currentPos){
         distTP = (d >= 0 ? '+' : '') + d.toFixed(2) + '%';
       }
 
-      return '<div class="pos-active-box ' + (p.side || 'LONG') + '" style="cursor:pointer;" onclick="switchActivePair(\'' + p.pair + '\')" title="Clic para ver gráfica de ' + p.pair + '">' +
+      const simIdAttr = p.sim_id ? ('data-sim-id="' + p.sim_id + '"') : '';
+
+      return '<div class="pos-active-box ' + (p.side || 'LONG') + '" ' + simIdAttr + ' style="transition:transform 0.15s ease;" onmouseenter="this.style.transform=\'translateY(-2px)\'" onmouseleave="this.style.transform=\'translateY(0)\'">' +
         '<div class="head">' +
           '<div style="display:flex; align-items:center; gap:6px;">' +
-            '<span class="tag ' + (p.side === 'SHORT' ? 'red' : 'green') + '">' + p.side + (lev > 1 ? ' ×' + lev : '') + '</span>' +
-            '<b style="font-size:13px; font-family:var(--mono);">' + p.pair + '</b>' +
+            '<span class="tag ' + (p.side === 'SHORT' ? 'red' : 'green') + '">' + p.side + (lev > 1 ? ' ' + lev + 'x' : '') + '</span>' +
+            '<b style="font-size:13px; font-family:var(--mono); cursor:pointer;" onclick="switchActivePair(\'' + p.pair + '\')" title="Ver gr&aacute;fico">' + p.pair + '</b>' +
+            simLabel +
           '</div>' +
           '<span class="pnl ' + pnlClass + '">' + pnlSign + fmtUSD(pnlVal, 2) + '</span>' +
         '</div>' +
@@ -1824,12 +1955,32 @@ function renderHeroOverview(snap, positionsMap, currentPos){
           '<span>SL: <b class="neg">' + fmtPrice(p.sl) + ' (' + distSL + ')</b></span>' +
           '<span>TP: <b class="pos">' + fmtPrice(p.tp) + ' (' + distTP + ')</b></span>' +
         '</div>' +
-        '<div class="meta" style="font-size:10px; color:var(--faint); justify-content:space-between;">' +
-          '<span>Margen: ' + fmtUSD(p.size_usd, 2) + '</span>' +
-          '<span>Barras: ' + (p.bars_held || 0) + '</span>' +
+        '<div class="meta" style="font-size:10px; color:var(--faint); justify-content:space-between; align-items:center; margin-top:2px;">' +
+          '<span>Margen: ' + fmtUSD(p.size_usd, 2) + ' &bull; Vela ' + (p.bars_held || 0) + '</span>' +
+          '<button class="act-btn" onclick="switchActivePair(\'' + p.pair + '\')" title="Cargar gr&aacute;fico y an&aacute;lisis">Gr&aacute;fico &rarr;</button>' +
         '</div>' +
       '</div>';
     }).join('');
+  }
+
+  // Si estamos en modo flota o periódicamente cada 6s, refrescar fleet positions del backend
+  const now = Date.now();
+  if (now - fleetCacheTimer > 5000){
+    fleetCacheTimer = now;
+    fetch('/api/fleet', { cache: 'no-store' }).then(r => r.json()).then(data => {
+      if (data && data.fleet) {
+        const fps = [];
+        data.fleet.forEach(s => {
+          if (s.positions && Array.isArray(s.positions)){
+            s.positions.forEach(p => fps.push(Object.assign({}, p, { sim_id: s.id, sim_name: s.name })));
+          }
+        });
+        lastFleetPositions = fps;
+        if (heroPosMode === 'fleet') {
+          renderHeroOverview(snap, positionsMap, currentPos);
+        }
+      }
+    }).catch(e => {});
   }
 
   // 2. Renderizar Indicadores Clave en Vivo
@@ -1865,7 +2016,7 @@ function renderHeroOverview(snap, positionsMap, currentPos){
         rsiSub.textContent = rsiVal > 50 ? 'Zona Alcista' : 'Zona Bajista';
       }
     } else {
-      rsiEl.textContent = '—';
+      rsiEl.textContent = '--';
       rsiSub.textContent = 'Calculando...';
     }
   }
@@ -1883,7 +2034,7 @@ function renderHeroOverview(snap, positionsMap, currentPos){
       emaEl.style.color = isBull ? 'var(--green)' : 'var(--red)';
       emaSub.textContent = isBull ? 'EMA9 > EMA21 (Alcista)' : 'EMA9 < EMA21 (Bajista)';
     } else {
-      emaEl.textContent = '—';
+      emaEl.textContent = '--';
       emaSub.textContent = 'Sin datos';
     }
   }
@@ -1897,9 +2048,9 @@ function renderHeroOverview(snap, positionsMap, currentPos){
       atrEl.textContent = fmtPrice(atrVal);
       const atrsPct = q.atr_pct != null ? q.atr_pct + '%' : '';
       const atrRank = q.atr_rank != null ? 'régimen ' + Math.round(q.atr_rank * 100) + '/100' : 'normal';
-      atrSub.textContent = atrsPct ? (atrsPct + ' · ' + atrRank) : atrRank;
+      atrSub.textContent = atrsPct ? (atrsPct + ' • ' + atrRank) : atrRank;
     } else {
-      atrEl.textContent = '—';
+      atrEl.textContent = '--';
       atrSub.textContent = 'Sin datos';
     }
   }
@@ -1933,12 +2084,12 @@ function renderHeroOverview(snap, positionsMap, currentPos){
       else if (fng.value <= 25) fngEl.style.color = 'var(--red)';
       else fngEl.style.color = 'var(--text)';
     } else {
-      fngEl.textContent = '—';
+      fngEl.textContent = '--';
       fngSub.textContent = 'Sin datos';
     }
   }
 
-  // System 1 / Quant
+  // System 1 / Quant con micro-animaciones
   const sys1El = $('hero-val-sys1');
   const sys1Sub = $('hero-sub-sys1');
   if (sys1El && sys1Sub) {
@@ -1956,6 +2107,20 @@ function renderHeroOverview(snap, positionsMap, currentPos){
       sys1El.style.color = bestScore >= thr ? 'var(--green)' : 'var(--dim)';
       sys1Sub.textContent = bestScore >= 0 ? 'Filtro umbral ' + thr : 'Sin setup técnico';
     }
+  }
+
+  // Auto-Toast en nuevos trades cerrados de la simulación
+  if (snap.history && Array.isArray(snap.history) && snap.history.length > 0){
+    const latestTrade = snap.history[0];
+    if (prevHistoryIds !== null && !prevHistoryIds.has(latestTrade.id)){
+      const sign = latestTrade.pnl >= 0 ? '+' : '';
+      const pnlMsg = sign + fmtUSD(latestTrade.pnl, 2) + ' (' + (latestTrade.pnl_pct >= 0 ? '+' : '') + latestTrade.pnl_pct + '%)';
+      const toastType = latestTrade.pnl >= 0 ? 'success' : 'error';
+      showToast('Trade cerrado ' + latestTrade.pair + ' [' + latestTrade.side + ']: ' + pnlMsg + ' • ' + (latestTrade.reason || 'cierre'), toastType, 5000);
+    }
+    prevHistoryIds = new Set(snap.history.map(t => t.id));
+  } else {
+    if (prevHistoryIds === null) prevHistoryIds = new Set();
   }
 }
 

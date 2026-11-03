@@ -704,6 +704,8 @@ CONFIG_SPEC = {
     "tp1_rr_frac":         ("float", 0.1, 1.0),
     "min_sl_pct":          ("float", 0.001, 0.1),
     "max_sl_pct":          ("float", 0.005, 0.2),
+    "compound_pct":        ("float", 0.0, 100.0),
+    "close_pos_filter":    ("bool",  None, None),
 }
 
 # Bloque de config.json donde se persiste cada clave editable (None = raíz).
@@ -728,6 +730,7 @@ CONFIG_BLOCK = {
     "ctx_filter": "context",
     "maker_entry": "strategy", "tp_sl_mode": "strategy", "sl_atr_mult": "strategy",
     "tp_rr": "strategy", "tp1_rr_frac": "strategy", "min_sl_pct": "strategy", "max_sl_pct": "strategy",
+    "compound_pct": "strategy", "close_pos_filter": "strategy",
 }
 
 # Nombre real dentro del dict params compartido (para las claves que difieren).
