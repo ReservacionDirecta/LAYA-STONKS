@@ -4538,18 +4538,43 @@ def api_stream():
 # Persistencia del estado (sobrevive recargas del servidor y de la página)
 # ----------------------------------------------------------------------------
 
-# Archivo de persistencia (override con LAYA_STATE_FILE para instancias de
-# prueba que no deban tocar el estado real del usuario).
-PERSIST_FILE = os.environ.get("LAYA_STATE_FILE") or os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "sim_state.json")
+# Directorio de datos y persistencia (soporte para volumen Railway en /storage/data o DATA_DIR)
+DATA_DIR = os.environ.get("DATA_DIR") or os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+if not DATA_DIR and os.path.isdir("/storage/data"):
+    DATA_DIR = "/storage/data"
+
+_base_dir = DATA_DIR if DATA_DIR else os.path.dirname(os.path.abspath(__file__))
+
+PERSIST_FILE = os.environ.get("LAYA_STATE_FILE") or os.path.join(_base_dir, "sim_state.json")
 PERSIST_INTERVAL = 10.0
 
-# --- Decision journal (SDO) ------------------------------------------------
-# Archivo própio para el journal: crece por señales (no por tick) y se
-# persiste de forma atomica junto a sim_state.json. DRIFT_EVERY_N es la
-# ventana de trades cerrados que dispara cada evaluación de drift.
-JOURNAL_FILE = os.environ.get("LAYA_JOURNAL_FILE") or os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "sim_journal.json")
+JOURNAL_FILE = os.environ.get("LAYA_JOURNAL_FILE") or os.path.join(_base_dir, "sim_journal.json")
+JOURNAL_MAX = 400
+DRIFT_EVERY_N = 12
+
+def _ensure_initial_persistence():
+    """Si se usa un volumen externo nuevo y los archivos de estado aun no existen,
+    copia el estado empaquetado inicial para no arrancar vacio."""
+    try:
+        app_dir = os.path.dirname(os.path.abspath(__file__))
+        if DATA_DIR and os.path.abspath(DATA_DIR) != os.path.abspath(app_dir):
+            os.makedirs(DATA_DIR, exist_ok=True)
+            if not os.path.exists(PERSIST_FILE):
+                src_state = os.path.join(app_dir, "sim_state.json")
+                if os.path.exists(src_state):
+                    import shutil
+                    shutil.copy2(src_state, PERSIST_FILE)
+                    log(f"Estado inicial copiado a volumen persistente: {PERSIST_FILE}")
+            if not os.path.exists(JOURNAL_FILE):
+                src_journal = os.path.join(app_dir, "sim_journal.json")
+                if os.path.exists(src_journal):
+                    import shutil
+                    shutil.copy2(src_journal, JOURNAL_FILE)
+                    log(f"Journal inicial copiado a volumen persistente: {JOURNAL_FILE}")
+    except Exception as e:
+        print("Advertencia al inicializar volumen persistente:", e)
+
+_ensure_initial_persistence()
 JOURNAL_MAX = 400          # tope de entradas por simulador
 DRIFT_EVERY_N = 12         # trades cerrados entre evaluaciones de drift
 
