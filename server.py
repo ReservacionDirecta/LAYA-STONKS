@@ -4941,7 +4941,7 @@ if __name__ == "__main__":
     print("=" * 66)
     try:
         HOST = os.environ.get("HOST", "0.0.0.0")
-    app.run(host=HOST, port=PORT, threaded=True, debug=False, use_reloader=False)
+        app.run(host=HOST, port=PORT, threaded=True, debug=False, use_reloader=False)
     except KeyboardInterrupt:
         _save_on_exit()
         log("Servidor detenido.")
