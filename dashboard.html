@@ -146,13 +146,18 @@
 
   /* ---------- cabecera / barra superior ---------- */
   .topbar {
-    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-    padding:10px 16px; border-bottom:1px solid var(--border);
-    background:var(--surface); position:sticky; top:0; z-index:50;
+    display:flex; flex-direction:column; gap:8px;
+    padding:8px 16px; border-bottom:1px solid var(--border);
+    background:rgba(13, 16, 23, 0.95); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    position:sticky; top:0; z-index:100;
   }
-  .brand { display:flex; align-items:baseline; gap:8px; margin-right:6px; }
+  .topbar-main {
+    display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%;
+  }
+  .brand { display:flex; align-items:baseline; gap:8px; }
   .brand b { font-size:16px; letter-spacing:1.5px; }
-  .brand span { color:var(--faint); font-size:11px; }
+  .brand .brand-sub { color:var(--faint); font-size:11px; }
+  .topbar-status { display:flex; align-items:center; gap:8px; }
   .pill { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:99px;
           border:1px solid var(--border); font-size:12px; background:var(--surface-2); }
   .pill .dot { width:8px; height:8px; border-radius:99px; background:var(--faint); }
@@ -163,9 +168,30 @@
   .conn .dot { width:7px; height:7px; border-radius:99px; background:var(--red); }
   .conn.on .dot { background:var(--green); }
 
-  .fleet { display:flex; gap:6px; flex-wrap:wrap; margin-left:4px; }
+  .topbar-toggle-btn {
+    display:none; padding:4px 10px; font-size:11.5px; font-weight:600;
+    border-radius:6px; border:1px solid var(--border-strong);
+    background:var(--surface-3); color:var(--text); cursor:pointer;
+    align-items:center; gap:4px;
+  }
+  .topbar-toggle-btn:hover { background:var(--surface-2); border-color:var(--blue); }
+
+  .topbar-collapsible {
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap; width:100%;
+  }
+  .topbar-fleet-row {
+    display:flex; align-items:center; gap:6px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    max-width:100%; padding-bottom:2px;
+  }
+  .topbar-controls-row {
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-left:auto;
+  }
+  .topbar-actions-group { display:inline-flex; gap:6px; }
+  .topbar-selects-group { display:inline-flex; gap:6px; }
+
+  .fleet { display:flex; gap:6px; flex-wrap:nowrap; }
   .simtab {
-    display:flex; flex-direction:column; gap:1px; align-items:flex-start;
+    display:flex; flex-direction:column; gap:1px; align-items:flex-start; flex-shrink:0;
     padding:5px 12px; border:1px solid var(--border); border-radius:var(--radius-sm);
     background:var(--surface-2); color:var(--dim); min-width:118px; transition:border-color var(--t);
   }
@@ -188,7 +214,7 @@
   .simtab .ops button.del:hover { border-color:var(--red); color:var(--red); }
   .simtab .ops button:disabled { opacity:.35; cursor:not-allowed; }
 
-  /* ---- modal nueva simulación ---- */
+  /* ---- modal nueva simulacion ---- */
   .modal-bg {
     position:fixed; inset:0; background:rgba(5,8,13,.66); z-index:150;
     display:none; align-items:center; justify-content:center;
@@ -231,12 +257,11 @@
   #chart-wrap:fullscreen #rsi-chart { height:120px; }
 
   /* ---- canvas de rendimiento ---- */
-  #perf-curve, #perf-pnl { display:block; margin-top:9px; border:1px solid var(--border); border-radius:6px; background:var(--surface-2); }
+  #perf-curve, #perf-pnl { display:block; margin-top:9px; border:1px solid var(--border); border-radius:6px; background:var(--surface-2); max-width:100%; }
   #perf-reasons { margin-top:8px; font-size:11px; color:var(--dim); }
   #perf-reasons .r { display:flex; justify-content:space-between; gap:10px; padding:2px 0; border-bottom:1px dashed var(--border); }
   #perf-reasons .r:last-child { border-bottom:none; }
 
-  .topbar .spacer { flex:1; }
   .btn {
     padding:6px 13px; border-radius:var(--radius-sm); border:1px solid var(--border-strong);
     background:var(--surface-3); color:var(--text); transition:filter var(--t);
@@ -250,22 +275,89 @@
     border-radius:var(--radius-sm); padding:5px 8px; font-family:inherit; font-size:12.5px;
   }
 
+  /* Table overflow wrapper for touch screens */
+  .table-wrap {
+    width:100%; max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    margin:6px 0; border:1px solid var(--border); border-radius:var(--radius-sm);
+  }
+  .table-wrap table { margin:0; width:100%; min-width:540px; }
+  .table-wrap::-webkit-scrollbar { height:5px; }
+  .table-wrap::-webkit-scrollbar-thumb { background:var(--surface-3); border-radius:4px; }
+
+  /* Tabs horizontal touch scroll */
+  .tabs {
+    display:flex; gap:2px; border-bottom:1px solid var(--border); margin:14px 0 0;
+    overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%;
+  }
+  .tabs::-webkit-scrollbar { height:3px; }
+  .tabs button { flex-shrink:0; white-space:nowrap; }
+
   /* ---------- layout principal ---------- */
-  main { display:grid; grid-template-columns:1fr 340px; gap:12px; padding:12px 16px 32px; }
+  main {
+    display:grid; grid-template-columns:1fr 340px; gap:12px;
+    padding:12px 16px 32px; max-width:1600px; margin:0 auto; width:100%; box-sizing:border-box;
+  }
+  .hero-overview {
+    max-width:1600px; margin:0 auto; width:100%; box-sizing:border-box;
+  }
+
   @media (max-width:1100px){
     main { grid-template-columns:1fr; }
     .hero-overview { grid-template-columns:1fr; }
+    .topbar-controls-row { margin-left:0; width:100%; }
   }
+
+  /* Breakpoint Tablet / Celulares grandes (<768px) */
   @media (max-width:768px){
-    .topbar { padding:8px 12px; gap:8px; }
+    .topbar { padding:8px 10px; }
+    .topbar-toggle-btn { display:inline-flex; }
+    .topbar-collapsible {
+      display:none; flex-direction:column; align-items:stretch; gap:10px; padding-top:8px;
+      border-top:1px dashed var(--border);
+    }
+    .topbar-collapsible.open { display:flex; }
+    .topbar-fleet-row { width:100%; justify-content:flex-start; }
+    .topbar-controls-row { width:100%; flex-direction:column; align-items:stretch; gap:8px; }
+    .topbar-actions-group, .topbar-selects-group { width:100%; display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .topbar-actions-group button, .topbar-selects-group select, #preset-select, #btn-toggle-cfg { width:100%; }
+
     .hero-overview { padding:8px 10px 0; }
     main { padding:8px 10px 24px; gap:10px; }
-    .ind-strip-grid { grid-template-columns:repeat(2, 1fr); }
+    .ind-strip-grid { grid-template-columns:repeat(2, 1fr); gap:6px; }
     .pos-card-grid { grid-template-columns:1fr; }
     .tabs button { padding:6px 10px; font-size:11.5px; }
-    #toast-container { left:12px; right:12px; bottom:12px; }
+    #toast-container { left:10px; right:10px; bottom:12px; }
     .toast { min-width:auto; max-width:100%; }
+    .kpi-grid { grid-template-columns:1fr 1fr; gap:6px; }
+    .kpi { padding:6px 8px; }
+    .kpi .v { font-size:13px; }
+    .kpi .v.big { font-size:17px; }
   }
+
+  /* Breakpoint Móvil iPhone / Pantallas pequeñas (<480px) */
+  @media (max-width:480px){
+    .topbar { padding:6px 8px; }
+    .hero-overview { padding:6px 8px 0; }
+    main { padding:6px 8px 20px; gap:8px; }
+    .card { padding:10px 10px; border-radius:8px; }
+    .brand b { font-size:14.5px; }
+    .brand .brand-sub { display:none; }
+    .pill { padding:2px 7px; font-size:11px; }
+    .conn { font-size:10.5px; }
+    .ind-chip { padding:5px 7px; }
+    .ind-chip .val { font-size:12px; }
+    .ind-chip .lbl { font-size:9px; }
+    .ind-chip .sub { font-size:9.5px; }
+    .pos-active-box { padding:7px 9px; }
+    .pos-active-box .pnl { font-size:13.5px; }
+    .chart-head { gap:5px; }
+    .chart-head button, .chart-head select { font-size:11px; padding:3px 6px; }
+    .chart-toolbar { max-width:200px; padding:3px 4px; }
+    .meta-line { font-size:10px; flex-wrap:wrap; }
+    .btbar { flex-direction:column; align-items:stretch; }
+    .btbar select, .btbar input, .btbar button { width:100%; }
+  }
+
   .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; }
   .card + .card { margin-top:12px; }
   .card h3 { margin:0 0 10px; font-size:11px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; color:var(--dim); }
@@ -403,32 +495,51 @@
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand"><b>LAYA</b><span>System 1 · Quant · Gemini</span></div>
-  <span class="pill stopped" id="pill"><span class="dot"></span><span id="pill-txt">Detenido</span></span>
-  <span class="conn" id="conn"><span class="dot"></span><span id="conn-txt">Conectando…</span></span>
+<header class="topbar" id="app-topbar">
+  <div class="topbar-main">
+    <div class="brand">
+      <b>LAYA</b>
+      <span class="brand-sub">Quant &bull; Gemini</span>
+    </div>
+    <div class="topbar-status">
+      <span class="pill stopped" id="pill"><span class="dot"></span><span id="pill-txt">Detenido</span></span>
+      <span class="conn" id="conn"><span class="dot"></span><span id="conn-txt">En vivo</span></span>
+    </div>
+    <button class="topbar-toggle-btn" id="btn-topbar-toggle" onclick="toggleMobileHeader()" aria-label="Alternar men&uacute; de control">
+      <span id="topbar-toggle-icon">&#9776; Men&uacute;</span>
+    </button>
+  </div>
 
-  <nav class="fleet" id="fleet" aria-label="Simuladores"></nav>
-  <button class="btn" id="btn-new-sim" title="Crear nueva simulación" style="margin-left:2px;">+ Sim</button>
+  <div class="topbar-collapsible" id="topbar-collapsible">
+    <div class="topbar-fleet-row">
+      <nav class="fleet" id="fleet" aria-label="Simuladores"></nav>
+      <button class="btn" id="btn-new-sim" title="Crear nueva simulaci&oacute;n" style="margin-left:2px; flex-shrink:0;">+ Sim</button>
+    </div>
 
-  <div class="spacer"></div>
-  <!-- Selector de Perfil Agentico -->
-  <select id="preset-select" title="Perfil de comportamiento agéntico" style="font-weight:600; border-color:var(--brand, #3b82f6); background:var(--surface-3);">
-    <option value="high_alpha" selected>💎 High-Alpha ($50 Max Profit)</option>
-    <option value="conservative">🛡️ Conservador (Swing)</option>
-    <option value="standard">⚖️ Estándar (Equilibrado 1x)</option>
-    <option value="aggressive">⚡ Agresivo (Scalp rápido)</option>
-  </select>
-  <button class="btn" id="btn-toggle-cfg" title="Abrir pestaña de configuración rápida">⚙️ Config</button>
-  <button class="btn primary" id="btn-start">Activar</button>
-  <button class="btn" id="btn-pause">Pausar</button>
-  <button class="btn danger" id="btn-stop">Parar</button>
-  <select id="pair-select" title="Par activo"></select>
-  <select id="ds-select" title="Origen de velas (cartera siempre paper)">
-    <option value="synthetic">Simulado</option>
-    <option value="spot">Spot Testnet (real)</option>
-    <option value="futures">Futuros Testnet (real)</option>
-  </select>
+    <div class="topbar-controls-row">
+      <!-- Selector de Perfil Agentico -->
+      <select id="preset-select" title="Perfil de comportamiento ag&eacute;ntico" style="font-weight:600; border-color:var(--brand, #3b82f6); background:var(--surface-3);">
+        <option value="high_alpha" selected>&bull; High-Alpha ($50 Max Profit)</option>
+        <option value="conservative">&#9878; Conservador (Swing)</option>
+        <option value="standard">&#9878; Est&aacute;ndar (Equilibrado 1x)</option>
+        <option value="aggressive">&#9889; Agresivo (Scalp r&aacute;pido)</option>
+      </select>
+      <button class="btn" id="btn-toggle-cfg" title="Abrir pesta&ntilde;a de configuraci&oacute;n r&aacute;pida">&#9881; Config</button>
+      <div class="topbar-actions-group">
+        <button class="btn primary" id="btn-start">Activar</button>
+        <button class="btn" id="btn-pause">Pausar</button>
+        <button class="btn danger" id="btn-stop">Parar</button>
+      </div>
+      <div class="topbar-selects-group">
+        <select id="pair-select" title="Par activo"></select>
+        <select id="ds-select" title="Origen de velas (cartera siempre paper)">
+          <option value="synthetic">Simulado</option>
+          <option value="spot">Spot Testnet (real)</option>
+          <option value="futures">Futuros Testnet (real)</option>
+        </select>
+      </div>
+    </div>
+  </div>
 </header>
 
 <!-- modal: nueva simulación -->
@@ -595,29 +706,29 @@
         <div class="g-sub">Flota</div>
         <div class="g-sims" id="g-sims"></div>
         <div class="g-sub">Posiciones de la flota</div>
-        <table>
+        <div class="table-wrap"><table>
           <thead><tr><th>Sim</th><th>Par</th><th>Lado</th><th class="right">Entrada</th><th class="right">Precio</th><th class="right">PnL</th><th class="right">Margen</th><th class="right">Barras</th></tr></thead>
           <tbody id="g-pos"><tr><td colspan="8" class="empty">Sin posiciones abiertas en la flota</td></tr></tbody>
-        </table>
+        </table></div>
         <div class="g-sub">Últimos cierres de la flota</div>
-        <table>
+        <div class="table-wrap"><table>
           <thead><tr><th>Sim</th><th>Par</th><th>Dir</th><th class="right">PnL</th><th>Motivo</th><th class="right">Hora</th></tr></thead>
           <tbody id="g-trades"><tr><td colspan="6" class="empty">Sin cierres aún</td></tr></tbody>
         </table>
       </div>
 
       <div class="tabpanel" id="tab-orders">
-        <table>
+        <div class="table-wrap"><table>
           <thead><tr><th>Orden</th><th>Lado</th><th class="right">Nivel</th><th class="right">Monto</th><th class="right">Distancia</th><th class="right">PnL si toca</th><th>Estado</th></tr></thead>
           <tbody id="orders-body"><tr><td colspan="7" class="empty">Sin posiciones abiertas</td></tr></tbody>
-        </table>
+        </table></div>
       </div>
 
       <div class="tabpanel" id="tab-history">
-        <table>
+        <div class="table-wrap"><table>
           <thead><tr><th>#</th><th>Par</th><th>Dir</th><th class="right">Entrada</th><th class="right">Salida</th><th class="right">PnL</th><th class="right">%</th><th class="right">Fee</th><th>Motivo</th></tr></thead>
           <tbody id="history-body"><tr><td colspan="9" class="empty">Aún no hay trades cerrados</td></tr></tbody>
-        </table>
+        </table></div>
       </div>
 
       <div class="tabpanel" id="tab-log">
@@ -707,6 +818,16 @@ let lastFleetPositions = [];
 let fleetCacheTimer = 0;
 let prevHistoryIds = null;
 let prevPositionsCount = null;
+
+function toggleMobileHeader(){
+  const coll = $('topbar-collapsible');
+  const icon = $('topbar-toggle-icon');
+  if (!coll) return;
+  const isOpen = coll.classList.toggle('open');
+  if (icon) {
+    icon.innerHTML = isOpen ? '&#10005; Cerrar' : '&#9776; Men&uacute;';
+  }
+}
 
 function setHeroPosFilter(mode){
   heroPosMode = mode;
@@ -2206,12 +2327,12 @@ $('bt-run').onclick = async () => {
   '</div>';
   const reasons = r.by_reason || [];
   if (reasons.length){
-    html += '<table style="margin-top:10px;"><thead><tr><th>Motivo</th><th class="right">Trades</th><th class="right">PnL</th></tr></thead><tbody>';
+    html += '<div class="table-wrap"><table style="margin-top:10px;"><thead><tr><th>Motivo</th><th class="right">Trades</th><th class="right">PnL</th></tr></thead><tbody>';
     reasons.forEach(x => {
       html += '<tr><td>'+escapeHtml(x.reason||x.bucket||'?')+'</td>'+
               '<td class="right">'+x.n+'</td><td class="right '+pnlCls(x.pnl)+'">'+fmtUSD(x.pnl,2)+'</td></tr>';
     });
-    html += '</tbody></table>';
+    html += '</tbody></table></div>';
   }
   $('bt-out').innerHTML = html;
 };
