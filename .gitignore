@@ -1,0 +1,21 @@
+# Entorno y logs
+__pycache__/
+*.py[cod]
+*$py.class
+*.log
+server_stdout.log
+server_stderr.log
+
+# Archivos de configuración local y credenciales privadas
+# (Mantener seguros fuera de repositorios públicos)
+config.json
+.env
+.env.local
+
+# Backups y temporales de depuración
+backups/
+temp/
+tmp/
+*.tmp
+.DS_Store
+Thumbs.db
