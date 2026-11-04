@@ -386,11 +386,28 @@ def now_iso():
 
 
 def load_config(path=CONFIG_FILE):
+    cfg_data = {}
     try:
         with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            cfg_data = json.load(f)
     except Exception:
-        return {}
+        cfg_data = {}
+
+    # Defaults robustos para System 2 (Gemini / NVIDIA) si no están definidos
+    da = cfg_data.setdefault("deep_analysis", {})
+    if not da.get("provider"):
+        da["provider"] = "google"
+    if not da.get("model"):
+        da["model"] = "gemini-3.5-flash-lite"
+    if not da.get("api_key_env"):
+        da["api_key_env"] = "GEMINI_API_KEY"
+    if not da.get("endpoint"):
+        da["endpoint"] = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"
+    if "enabled" not in da:
+        da["enabled"] = True
+    if "use_for_filter" not in da:
+        da["use_for_filter"] = True
+    return cfg_data
 
 
 def save_config(cfg_obj, path=CONFIG_FILE):
@@ -3123,6 +3140,12 @@ class Manager:
         new_eng = None
         if DEEP_ANALYSIS_AVAILABLE:
             try:
+                # Asegurar bloque completo de deep_analysis en self.cfg
+                da_cfg = self.cfg.setdefault("deep_analysis", {})
+                da_cfg["enabled"] = True
+                if not da_cfg.get("provider"): da_cfg["provider"] = "google"
+                if not da_cfg.get("model"): da_cfg["model"] = "gemini-3.5-flash-lite"
+                if not da_cfg.get("api_key_env"): da_cfg["api_key_env"] = "GEMINI_API_KEY"
                 new_eng = DeepAnalysisEngine(self.cfg)
                 if not new_eng.enabled:
                     new_eng = None   # sin API key o config inválida

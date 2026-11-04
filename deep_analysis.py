@@ -276,7 +276,7 @@ Nota de comisiones (Binance real): Spot estándar 0.1% ($0.02 por lado, $0.04 ci
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
                     "temperature": self.temperature,
-                    "maxOutputTokens": 2048,
+                    "maxOutputTokens": 450,
                     "topP": 1,
                     "topK": 40,
                 },
@@ -287,7 +287,7 @@ Nota de comisiones (Binance real): Spot estándar 0.1% ($0.02 por lado, $0.04 ci
                 "model": self.model,
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": self.temperature,
-                "max_tokens": 2048,
+                "max_tokens": 450,
                 "top_p": 1,
                 "frequency_penalty": 0,
                 "presence_penalty": 0,
