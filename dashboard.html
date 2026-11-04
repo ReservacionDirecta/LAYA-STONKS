@@ -890,11 +890,32 @@ let fleetCacheTimer = 0;
 let prevHistoryIds = null;
 let prevPositionsCount = null;
 
+async function ensureConfigLoaded(){
+  if (!CFG) {
+    try {
+      const r = await fetch('/api/config', { cache: 'no-store' });
+      if (r.ok) {
+        CFG = await r.json();
+      }
+    } catch(e){}
+  }
+  if (!CFG && window.SNAP && window.SNAP.config) {
+    CFG = window.SNAP.config;
+  }
+  renderConfig();
+}
+
 function switchTab(tabId){
   const b = document.querySelector('.tabs button[data-tab="' + tabId + '"]');
   if (b) {
     document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
     document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tabId));
+    
+    // Si se activa la pestaña de configuración, asegurar que esté renderizada
+    if (tabId === 'config') {
+      ensureConfigLoaded();
+    }
+    
     // Centrar suavemente la vista en la sección de la pestaña
     const targetPanel = $('tab-' + tabId);
     if (targetPanel) {
@@ -904,7 +925,6 @@ function switchTab(tabId){
 }
 
 function openConfigTab(){
-  // Si el menú móvil está abierto, ciérralo tras seleccionar configuración
   const coll = $('topbar-collapsible');
   if (coll && coll.classList.contains('open')) {
     toggleMobileHeader();
@@ -1458,7 +1478,17 @@ function flatConfig(cfg){
 }
 
 function renderConfig(){
-  if (!CFG) return;
+  if (!CFG) {
+    if (window.SNAP && window.SNAP.config) {
+      CFG = window.SNAP.config;
+    } else {
+      fetch('/api/config', { cache:'no-store' }).then(r=>r.json()).then(data=>{
+        CFG = data;
+        renderConfig();
+      }).catch(e=>{});
+      return;
+    }
+  }
   const flat = flatConfig(CFG);
   const out = [];
   CONFIG_FIELDS.forEach(g => {
@@ -1601,8 +1631,12 @@ if ($('chart-pair-select')) {
 document.querySelector('.tabs').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-tab]');
   if (!b) return;
+  const tabId = b.dataset.tab;
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
-  document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.id === 'tab-'+b.dataset.tab));
+  document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.id === 'tab-'+tabId));
+  if (tabId === 'config') {
+    ensureConfigLoaded();
+  }
 });
 
 /* ---------- System 2: análisis en demanda (botón del pipeline) ---------- */
