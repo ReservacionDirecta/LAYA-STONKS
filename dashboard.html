@@ -670,38 +670,8 @@
           <div class="val" id="hero-val-sys1">--</div>
           <div class="sub" id="hero-sub-sys1">Puntaje</div>
         </div>
-            </div>
-      <div class="tabpanel" id="tab-ai-audit">
-        <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; margin-bottom:12px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <div>
-              <b style="font-size:13.5px; color:#93c5fd; letter-spacing:0.5px; display:inline-flex; align-items:center; gap:6px;">
-                &#9889; Motor de Diagn&oacute;stico Inteligente (System 2 &bull; Gemini / Quant)
-              </b>
-              <div class="dim" style="font-size:11.5px; margin-top:2px;">
-                Auditor&iacute;a en vivo de resultados de trading, m&eacute;tricas de riesgo, efectividad de estrategia y condiciones de mercado.
-              </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-              <select id="ai-audit-pair-select" style="font-size:12px; padding:5px 8px; font-weight:600;"></select>
-              <button class="btn primary" id="btn-trigger-ai-audit" style="padding:6px 14px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg, #2563eb, #1d4ed8); border-color:#3b82f6;">
-                <span>&#9654; Disparar An&aacute;lisis Ahora</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div id="ai-audit-output">
-          <div class="empty" style="padding:32px 16px; border:1px dashed var(--border); border-radius:var(--radius-sm); text-align:center;">
-            <div style="font-size:24px; margin-bottom:8px;">&#129302;</div>
-            <b style="font-size:13px; color:var(--text);">Ning&uacute;n an&aacute;lisis ejecutado en esta sesi&oacute;n</b>
-            <div class="dim" style="font-size:11.5px; margin-top:4px; max-width:480px; margin-left:auto; margin-right:auto;">
-              Pulsa el bot&oacute;n <b>Disparar An&aacute;lisis Ahora</b> para que el motor Gemini System 2 audite el estado del mercado, la calidad cuantitativa y el rendimiento del simulador en tiempo real.
-            </div>
-          </div>
-        </div>
       </div>
-/div>
+    </div>
   </section>
 
   <!-- =========================== COLUMNA IZQUIERDA =========================== -->
@@ -823,6 +793,37 @@
           <button class="btn primary" id="cfg-apply">Aplicar cambios</button>
           <button class="btn" id="cfg-reload">Restaurar valores</button>
           <span class="dim" id="cfg-status"></span>
+        </div>
+      </div>
+
+      <div class="tabpanel" id="tab-ai-audit">
+        <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+              <b style="font-size:13.5px; color:#93c5fd; letter-spacing:0.5px; display:inline-flex; align-items:center; gap:6px;">
+                &#9889; Motor de Diagn&oacute;stico Inteligente (System 2 &bull; Gemini / Quant)
+              </b>
+              <div class="dim" style="font-size:11.5px; margin-top:2px;">
+                Auditor&iacute;a en vivo de resultados de trading, m&eacute;tricas de riesgo, efectividad de estrategia y condiciones de mercado.
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <select id="ai-audit-pair-select" style="font-size:12px; padding:5px 8px; font-weight:600;"></select>
+              <button class="btn primary" id="btn-trigger-ai-audit" style="padding:6px 14px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg, #2563eb, #1d4ed8); border-color:#3b82f6;">
+                <span>&#9654; Disparar An&aacute;lisis Ahora</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="ai-audit-output">
+          <div class="empty" style="padding:32px 16px; border:1px dashed var(--border); border-radius:var(--radius-sm); text-align:center;">
+            <div style="font-size:24px; margin-bottom:8px;">&#129302;</div>
+            <b style="font-size:13px; color:var(--text);">Ning&uacute;n an&aacute;lisis ejecutado en esta sesi&oacute;n</b>
+            <div class="dim" style="font-size:11.5px; margin-top:4px; max-width:480px; margin-left:auto; margin-right:auto;">
+              Pulsa el bot&oacute;n <b>Disparar An&aacute;lisis Ahora</b> para que el motor Gemini System 2 audite el estado del mercado, la calidad cuantitativa y el rendimiento del simulador en tiempo real.
+            </div>
+          </div>
         </div>
       </div>
     </div>
