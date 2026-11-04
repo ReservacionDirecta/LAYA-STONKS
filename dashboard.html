@@ -547,7 +547,7 @@
         <option value="standard">&#9878; Est&aacute;ndar (Equilibrado 1x)</option>
         <option value="aggressive">&#9889; Agresivo (Scalp r&aacute;pido)</option>
       </select>
-      <button class="btn" id="btn-toggle-cfg" title="Abrir pesta&ntilde;a de configuraci&oacute;n r&aacute;pida">&#9881; Config</button>
+      <button class="btn" id="btn-toggle-cfg" onclick="openConfigTab()" title="Abrir pesta&ntilde;a de configuraci&oacute;n">&#9881; Config</button>
       <div class="topbar-actions-group">
         <button class="btn primary" id="btn-start">Activar</button>
         <button class="btn" id="btn-pause">Pausar</button>
@@ -876,6 +876,29 @@ let lastFleetPositions = [];
 let fleetCacheTimer = 0;
 let prevHistoryIds = null;
 let prevPositionsCount = null;
+
+function switchTab(tabId){
+  const b = document.querySelector('.tabs button[data-tab="' + tabId + '"]');
+  if (b) {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
+    document.querySelectorAll('.tabpanel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + tabId));
+    // Centrar suavemente la vista en la sección de la pestaña
+    const targetPanel = $('tab-' + tabId);
+    if (targetPanel) {
+      targetPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+}
+
+function openConfigTab(){
+  // Si el menú móvil está abierto, ciérralo tras seleccionar configuración
+  const coll = $('topbar-collapsible');
+  if (coll && coll.classList.contains('open')) {
+    toggleMobileHeader();
+  }
+  switchTab('config');
+  showToast('Abriendo panel de configuración...', 'info', 2000);
+}
 
 function toggleMobileHeader(){
   const coll = $('topbar-collapsible');
