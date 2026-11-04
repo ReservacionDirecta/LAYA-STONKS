@@ -3553,7 +3553,14 @@ class Manager:
             sim = self.simulators.get(self.active_id)
             if sim is None:
                 return {"ok": False, "error": "no hay simulador activo"}
-            engine = self.params.get("deep_engine")
+            engine = self.params.get("deep_engine") or getattr(self, "deep_engine", None)
+            if not engine or not getattr(engine, "enabled", False):
+                if DEEP_ANALYSIS_AVAILABLE:
+                    try:
+                        self._set_deep_enabled(True)
+                        engine = self.params.get("deep_engine") or getattr(self, "deep_engine", None)
+                    except Exception:
+                        pass
             if not engine or not getattr(engine, "enabled", False):
                 return {"ok": False, "error": "System 2 no está activado (Configuración → deep_analysis.enabled)"}
             pair = str(pair or sim.active_pair or "").upper()
