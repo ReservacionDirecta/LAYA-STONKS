@@ -3565,7 +3565,18 @@ class Manager:
                 return {"ok": False, "error": "System 2 no está activado (Configuración → deep_analysis.enabled)"}
             pair = str(pair or sim.active_pair or "").upper()
             if pair not in sim.markets:
-                return {"ok": False, "error": "el par " + pair + " no está en el universo del sim activo"}
+                # Si el par solicitado no está en este sim, buscar si otro sim lo tiene
+                found_sim = None
+                for other_s in self.simulators.values():
+                    if pair in other_s.markets:
+                        found_sim = other_s
+                        break
+                if found_sim is not None:
+                    sim = found_sim
+                else:
+                    # Crear mercado al vuelo para este par para permitir el análisis
+                    sim.markets[pair] = Market(pair, self.params)
+                    self._seed_sim_testnet(sim, pairs=[pair])
             m = sim.markets[pair]
             q = (m.diagnostics or {}).get("quant") or {}
             if str(signal).upper() in ("LONG", "SHORT"):

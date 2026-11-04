@@ -31,20 +31,28 @@ class DeepAnalysisEngine:
         if not self.enabled:
             return
 
-        # Configuración NVIDIA API
-        self.provider = self.cfg.get("provider", "nvidia")
-        self.model = self.cfg.get("model", "stepfun-ai/step-5-preview")
-        self.api_key_env = self.cfg.get("api_key_env", "NVIDIA_API_KEY")
-        self.endpoint = self.cfg.get("endpoint", "https://integrate.api.nvidia.com/v1/chat/completions")
-        self.temperature = float(self.cfg.get("temperature", 0.2))
-        self.timeout = int(self.cfg.get("timeout_seconds", 20))
-        self.max_retries = int(self.cfg.get("max_retries", 2))
-        self.retry_delay = float(self.cfg.get("retry_delay_seconds", 2.0))
-        self.use_filter = self.cfg.get("use_for_filter", True)
-        self.use_adjust = self.cfg.get("use_for_sl_tp_adjust", False)
-
-        # 1) Leer de config.json explícita si existe, 2) os.environ, 3) Registro de Windows (User Environment)
-        self.api_key = self.cfg.get("api_key", "").strip() or os.environ.get(self.api_key_env, "").strip()
+        # Configuración de Proveedor (Google Gemini o NVIDIA / OpenAI-compatible)
+        gemini_env = os.environ.get('GEMINI_API_KEY', '').strip()
+        default_provider = 'google' if (gemini_env or self.cfg.get('api_key')) else 'google'
+        self.provider = self.cfg.get('provider', default_provider)
+        if self.provider == 'google':
+            self.model = self.cfg.get('model', 'gemini-3.5-flash-lite')
+            self.api_key_env = self.cfg.get('api_key_env', 'GEMINI_API_KEY')
+            self.endpoint = self.cfg.get('endpoint', f'https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent')
+        else:
+            self.model = self.cfg.get('model', 'stepfun-ai/step-5-preview')
+            self.api_key_env = self.cfg.get('api_key_env', 'NVIDIA_API_KEY')
+            self.endpoint = self.cfg.get('endpoint', 'https://integrate.api.nvidia.com/v1/chat/completions')
+        self.temperature = float(self.cfg.get('temperature', 0.2))
+        self.timeout = int(self.cfg.get('timeout_seconds', 25))
+        self.max_retries = int(self.cfg.get('max_retries', 2))
+        self.retry_delay = float(self.cfg.get('retry_delay_seconds', 2.0))
+        self.use_filter = self.cfg.get('use_for_filter', True)
+        self.use_adjust = self.cfg.get('use_for_sl_tp_adjust', False)
+        # 1) config.json explícita, 2) os.environ, 3) fallback GEMINI_API_KEY, 4) Windows Registry
+        self.api_key = (self.cfg.get('api_key', '').strip() or
+                        os.environ.get(self.api_key_env, '').strip() or
+                        (gemini_env if self.provider == 'google' else ''))
         if not self.api_key and os.name == 'nt':
             try:
                 import winreg
