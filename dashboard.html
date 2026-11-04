@@ -658,8 +658,38 @@
           <div class="val" id="hero-val-sys1">--</div>
           <div class="sub" id="hero-sub-sys1">Puntaje</div>
         </div>
+            </div>
+      <div class="tabpanel" id="tab-ai-audit">
+        <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px; margin-bottom:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <div>
+              <b style="font-size:13.5px; color:#93c5fd; letter-spacing:0.5px; display:inline-flex; align-items:center; gap:6px;">
+                &#9889; Motor de Diagn&oacute;stico Inteligente (System 2 &bull; Gemini / Quant)
+              </b>
+              <div class="dim" style="font-size:11.5px; margin-top:2px;">
+                Auditor&iacute;a en vivo de resultados de trading, m&eacute;tricas de riesgo, efectividad de estrategia y condiciones de mercado.
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <select id="ai-audit-pair-select" style="font-size:12px; padding:5px 8px; font-weight:600;"></select>
+              <button class="btn primary" id="btn-trigger-ai-audit" style="padding:6px 14px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:6px; background:linear-gradient(135deg, #2563eb, #1d4ed8); border-color:#3b82f6;">
+                <span>&#9654; Disparar An&aacute;lisis Ahora</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="ai-audit-output">
+          <div class="empty" style="padding:32px 16px; border:1px dashed var(--border); border-radius:var(--radius-sm); text-align:center;">
+            <div style="font-size:24px; margin-bottom:8px;">&#129302;</div>
+            <b style="font-size:13px; color:var(--text);">Ning&uacute;n an&aacute;lisis ejecutado en esta sesi&oacute;n</b>
+            <div class="dim" style="font-size:11.5px; margin-top:4px; max-width:480px; margin-left:auto; margin-right:auto;">
+              Pulsa el bot&oacute;n <b>Disparar An&aacute;lisis Ahora</b> para que el motor Gemini System 2 audite el estado del mercado, la calidad cuantitativa y el rendimiento del simulador en tiempo real.
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+/div>
   </section>
 
   <!-- =========================== COLUMNA IZQUIERDA =========================== -->
@@ -715,6 +745,7 @@
         <button data-tab="log">Bitácora</button>
         <button data-tab="backtest">Backtest</button>
         <button data-tab="config">Configuración</button>
+        <button data-tab="ai-audit" id="tab-btn-ai-audit" style="color:#93c5fd; font-weight:600;">&#10024; An&aacute;lisis IA</button>
       </div>
 
             <div class="tabpanel active" id="tab-global">
@@ -2294,6 +2325,7 @@ function applySnapshot(snap){
   const p = snap.portfolio || {};
   $('kpi-equity').innerHTML = fmtUSD(p.equity!=null?p.equity:(p.cash||0), 2);
   render(snap);
+  if (typeof syncAiAuditPairs === 'function') syncAiAuditPairs(snap);
   updateCharts(snap);          // gestiona chartReady internamente (evita deadlock de primera pintura)
   updateTfBar();
   if (typeof syncTvModalData === 'function' && typeof tvModalOpen !== 'undefined' && tvModalOpen) {
@@ -2400,7 +2432,131 @@ function loadChartLib(urls, onDone, onFail){
   const go = () => { if (!boot.done){ boot.done = true; initCharts(); chartReady = true;
     if (SNAP && !isViewMode()) chartResetFromSnap(SNAP);
     if (isViewMode()) fetchViewChart(true).then(ok => { if (ok) startChartPoll(); }); } };
-  connect();                                   // SSE/estado siempre en paralelo
+  connect();
+
+/* =========================================================
+   PANEL DE ANÁLISIS DE RESULTADOS EN TIEMPO REAL (IA / System 2)
+   ========================================================= */
+async function triggerAiAudit(pairOverride){
+  const btn = $('btn-trigger-ai-audit');
+  const out = $('ai-audit-output');
+  const pairSel = $('ai-audit-pair-select');
+  const pair = pairOverride || (pairSel ? pairSel.value : '') || (window.SNAP ? window.SNAP.pair : 'BTCUSDT');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span style="display:inline-block; animation:radar-pulse 1s infinite;">&#9696;</span> Auditando con Gemini...';
+  }
+  showToast('Disparando análisis inteligente para ' + pair + '...', 'info', 3000);
+
+  if (out) {
+    out.innerHTML = '<div style="background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:20px; text-align:center;">' +
+      '<div style="font-size:13px; font-weight:600; color:#93c5fd; margin-bottom:8px;">Consultando System 2 (Gemini &bull; Análisis Multimodal)...</div>' +
+      '<div class="dim" style="font-size:11.5px;">Evaluando libro de órdenes, indicadores técnicos, sentimiento F&G y sesgo macro 1h...</div>' +
+    '</div>';
+  }
+
+  try {
+    const snap = window.SNAP || {};
+    const an = (snap.analytics && snap.analytics.tiles) ? snap.analytics.tiles : (snap.analytics || {});
+    const r = await apiPost('/api/deep/run', { pair: pair });
+
+    if (r && r.ok && r.result) {
+      const res = r.result;
+      const rec = String(res.recomendacion_laya || 'ABSTAIN').toUpperCase();
+      const conf = Math.round((parseFloat(res.confianza) || 0) * 100);
+      const macro = String(res.macro_tendencia || 'neutral').toUpperCase();
+      const sent = String(res.sentimiento_mercado || 'neutral').toUpperCase();
+      const razon = res.razon_corta || 'Sin justificación detallada';
+      const niveles = res.niveles_clave || 'Sin niveles definidos';
+      const sltp = res.ajuste_sl_tp || {};
+      const filtros = res.filtro_extra || {};
+      const timeStr = new Date().toLocaleTimeString('es', { hour12: false });
+
+      let recBadgeCls = 'var(--amber)';
+      if (rec === 'BUY' || rec === 'LONG') recBadgeCls = 'var(--green)';
+      else if (rec === 'SELL' || rec === 'SHORT') recBadgeCls = 'var(--red)';
+
+      const html = '<div style="background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px; display:flex; flex-direction:column; gap:14px; animation:toastIn .3s ease-out;">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; flex-wrap:wrap; gap:8px;">' +
+          '<div style="display:flex; align-items:center; gap:10px;">' +
+            '<span style="padding:4px 10px; border-radius:6px; font-weight:800; font-size:13px; color:#fff; background:' + recBadgeCls + ';">' + rec + '</span>' +
+            '<b style="font-size:15px; font-family:var(--mono); color:var(--text);">' + escapeHtml(pair) + '</b>' +
+            '<span class="dim" style="font-size:11.5px;">&bull; Confianza: <b style="color:var(--text);">' + conf + '%</b></span>' +
+          '</div>' +
+          '<div class="dim" style="font-size:11px;">Hora: <b style="color:var(--text);">' + timeStr + '</b> &bull; Latencia: ' + (r.elapsed_ms || 0) + 'ms</div>' +
+        '</div>' +
+
+        '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">' +
+          '<div style="background:var(--surface-3); border:1px solid var(--border); border-radius:6px; padding:10px;">' +
+            '<div class="lbl" style="font-size:10px; color:var(--faint); text-transform:uppercase;">Sesgo Macro</div>' +
+            '<div style="font-size:13px; font-weight:700; color:var(--text); margin-top:2px;">' + escapeHtml(macro) + '</div>' +
+          '</div>' +
+          '<div style="background:var(--surface-3); border:1px solid var(--border); border-radius:6px; padding:10px;">' +
+            '<div class="lbl" style="font-size:10px; color:var(--faint); text-transform:uppercase;">Sentimiento Mercado</div>' +
+            '<div style="font-size:13px; font-weight:700; color:var(--text); margin-top:2px;">' + escapeHtml(sent) + '</div>' +
+          '</div>' +
+          '<div style="background:var(--surface-3); border:1px solid var(--border); border-radius:6px; padding:10px;">' +
+            '<div class="lbl" style="font-size:10px; color:var(--faint); text-transform:uppercase;">Win Rate Actual</div>' +
+            '<div style="font-size:13px; font-weight:700; color:var(--text); margin-top:2px;">' + (an.win_rate != null ? an.win_rate + '%' : '--') + ' (PF: ' + (an.profit_factor || '--') + ')</div>' +
+          '</div>' +
+          '<div style="background:var(--surface-3); border:1px solid var(--border); border-radius:6px; padding:10px;">' +
+            '<div class="lbl" style="font-size:10px; color:var(--faint); text-transform:uppercase;">Ajuste SL / TP sugerido</div>' +
+            '<div style="font-size:12px; font-weight:600; color:var(--text); margin-top:2px;">SL &times;' + (sltp.sl_factor || 1) + ' &bull; TP &times;' + (sltp.tp_factor || 1) + '</div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div style="background:var(--surface-3); border-left:3px solid #3b82f6; border-radius:0 6px 6px 0; padding:12px 14px;">' +
+          '<b style="font-size:11.5px; text-transform:uppercase; color:#93c5fd; letter-spacing:0.5px;">Diagnóstico de la IA:</b>' +
+          '<div style="font-size:12.5px; color:var(--text); line-height:1.5; margin-top:4px;">' + escapeHtml(razon) + '</div>' +
+        '</div>' +
+
+        '<div style="font-size:11.5px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; color:var(--dim); border-top:1px dashed var(--border); padding-top:8px;">' +
+          '<span>Niveles clave: <b style="color:var(--text);">' + escapeHtml(niveles) + '</b></span>' +
+          '<span>Modelo: <b style="color:#93c5fd;">' + escapeHtml(res._model || 'Gemini') + '</b></span>' +
+        '</div>' +
+      '</div>';
+
+      out.innerHTML = html;
+      showToast('Análisis IA completado: ' + rec + ' (' + conf + '% conf)', rec === 'ABSTAIN' ? 'warning' : 'success', 4500);
+    } else {
+      out.innerHTML = '<div style="background:var(--surface-2); border:1px solid var(--red); border-radius:var(--radius-sm); padding:16px; color:var(--red); font-size:12px;">' +
+        '<b>Error ejecutando análisis:</b> ' + escapeHtml(r.error || 'No se pudo obtener veredicto de System 2') +
+      '</div>';
+      showToast('Error en análisis: ' + (r.error || 'fallo de servidor'), 'error', 4000);
+    }
+  } catch (err) {
+    if (out) {
+      out.innerHTML = '<div style="background:var(--surface-2); border:1px solid var(--red); border-radius:var(--radius-sm); padding:16px; color:var(--red); font-size:12px;">' +
+        '<b>Error de conexión:</b> ' + escapeHtml(err.message || 'Sin respuesta del servidor') +
+      '</div>';
+    }
+    showToast('Error de conexión con el servidor', 'error', 4000);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>&#9654; Disparar An&aacute;lisis Ahora</span>';
+    }
+  }
+}
+
+// Hook al botón del panel de auditoría
+if ($('btn-trigger-ai-audit')) {
+  $('btn-trigger-ai-audit').onclick = () => triggerAiAudit();
+}
+
+// Sincronizar pares en el selector del panel de auditoría
+function syncAiAuditPairs(snap){
+  const sel = $('ai-audit-pair-select');
+  if (!sel || !snap || !snap.available_pairs) return;
+  const curVal = sel.value || snap.pair || 'BTCUSDT';
+  if (sel.options.length !== snap.available_pairs.length){
+    sel.innerHTML = snap.available_pairs.map(p =>
+      '<option value="' + p.symbol + '"' + (p.symbol === curVal ? ' selected' : '') + '>' + p.symbol + '</option>'
+    ).join('');
+  }
+}
+                                   // SSE/estado siempre en paralelo
   if (window.LightweightCharts) go();
   else {
     loadChartLib([
