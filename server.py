@@ -427,20 +427,20 @@ def save_config(cfg_obj, path=CONFIG_FILE):
 # Valores por defecto; config.json los sobreescribe con su bloque "strategy".
 STRATEGY_DEFAULTS = {
     "tp1_pct": 0.025,          # movimiento a favor que dispara TP1 (part de precio)
-    "tp1_size_pct": 0.5,       # fracción de la posición que se cierra en TP1
+    "tp1_size_pct": 0.35,      # 35% en TP1: paga comisión + aire; 65% vive para el TP grande
     "break_even": True,        # tras TP1, SL sube a la entrada (sin pérdida)
     "trail_atr_mult": 2.0,     # trailing = px favorito - ATR*mult (0 desactiva)
-    "momentum_exit": True,     # cerrar el resto si aparece señal contraria fuerte
+    "momentum_exit": False,    # señal contraria NO cierra la posición (churn -0.50 en 6 cierres)
     "time_stop_bars": 0,       # cerrar tras N barras sin SL/TP (0 desactiva)
-    "cooldown_bars": 6,        # barras de espera tras cerrar antes de re-entrar
+    "cooldown_bars": 4,        # 4 barras de espera tras cerrar (20 min en 5m); con pérdida se multiplica
     "short_enabled": True,     # permitir SHORT (feed de futuros O paper-futuros)
     "futures_paper": False,     # SHORT paper apalancado sin necesitar feed de futuros (sigue en paper)
     "leverage": 5,             # apalancamiento en SHORT/ futuros (1 = spot)
     # --- Anti-churn / anti-persecución (afinado con el diagnóstico de efectividad) ---
     "momentum_grace_bars": 0,   # sin salida-momentum en las primeras N barras de la posición (0 desactiva)
     "momentum_min_strength": 0, # fuerza mínima (%) de la señal contraria para salir (0 usa la base 75%)
-    "cooldown_loss_mult": 1.0,  # multiplica el cooldown tras cerrar con pérdida (1 = neutro)
-    "max_ext_atr": 0.0,         # bloquea la entrada si el precio queda > N×ATR lejos de la EMA21 (0 desactiva)
+    "cooldown_loss_mult": 2.5,  # post-SL: cooldown x2.5 (BNB re-entró 2x en el mismo suelo $689-691)
+    "max_ext_atr": 1.25,        # "tendencia fresca" vs tardía: >1.25×ATR de la EMA21 = tarde, no perseguir
     "min_body_ratio": 0.0,      # exige cuerpo real de vela: |cierre-apertura|/rango >= N (0 desactiva)
     "sl_slip_atr": 0.0,         # deslizamiento máximo del SL/trailing en ATR (0 = relleno exacto al stop)
     "ctx_filter": False,        # con F&G extremo (>=80 o <=10) solo entra si la MTF acompaña
@@ -451,15 +451,22 @@ STRATEGY_DEFAULTS = {
     # Sustituye a los % fijos que, en barras de 5m reales, quedan a decenas
     # de ATR de distancia (todas las operaciones morían en el stop de tiempo).
     "tp_sl_mode": "atr",        # "atr" = SL/TP escalados por volatilidad | "fixed" = % fijos
-    "sl_atr_mult": 1.4,         # distancia del SL en MÚLTIPLOS de ATR
-    "tp_rr": 2.0,               # ratio riesgo/beneficio: TP = SL × tp_rr
+    "sl_atr_mult": 1.6,         # SL 1.6×ATR: 1.3-1.4 era ruido de 5m (34 SL de mecha en 271 trades)
+    "tp_rr": 2.5,               # ratio riesgo/beneficio: TP = SL × tp_rr
     "tp1_rr_frac": 0.45,        # TP1 se coloca a esa fracción de la distancia del TP
     "min_sl_pct": 0.0035,       # suelo del SL en % del precio (evita stops sub-comisión)
     "max_sl_pct": 0.025,        # techo del SL en % del precio
     # Score cuantitativo (0-100): tendencia + momentum + RSI centrado +
     # volumen + régimen de volatilidad. Señal válida solo si score >= umbral:
     # opera menos pero mejor (menos churn → menos comisiones sin velas muertas).
-    "min_signal_score": 55,     # umbral de admisión de la señal (0 desactiva el filtro)
+    "min_signal_score": 70,     # umbral estricto: entra menos pero mejor (antes 55 → churn)
+    # Rango de RSI por dirección (Mejora 1: tendencia fresca en vez de techo/suelo):
+    # LONG 52-64 evita comprar en 68-69 antes del agotamiento;
+    # SHORT 36-48 evita vender en 31-33 cuando el rebote ya está cerca.
+    "long_rsi_min": 52.0,
+    "long_rsi_max": 64.0,
+    "short_rsi_min": 36.0,
+    "short_rsi_max": 48.0,
     # --- Motor de riesgo formal (checks pre-trade fail-fast) ---
     "risk_dd_block_pct": 6.0,   # dd de la curva sobre el capital que bloquea NUEVAS entradas (0 = off)
     "risk_reserve_pct": 10.0,   # colchón mínimo de cash (% del capital) para abrir (0 = off)
@@ -505,6 +512,15 @@ def sanitize_strategy(st):
     if out["min_sl_pct"] > out["max_sl_pct"]:
         out["min_sl_pct"], out["max_sl_pct"] = out["max_sl_pct"], out["min_sl_pct"]
     out["min_signal_score"] = max(0.0, min(float(out["min_signal_score"]), 100.0))
+    # Rangos RSI por dirección (0-100, min < max; si se cruzan, fallback seguro)
+    out["long_rsi_min"] = max(0.0, min(float(out["long_rsi_min"]), 100.0))
+    out["long_rsi_max"] = max(0.0, min(float(out["long_rsi_max"]), 100.0))
+    out["short_rsi_min"] = max(0.0, min(float(out["short_rsi_min"]), 100.0))
+    out["short_rsi_max"] = max(0.0, min(float(out["short_rsi_max"]), 100.0))
+    if out["long_rsi_min"] >= out["long_rsi_max"]:
+        out["long_rsi_min"], out["long_rsi_max"] = STRATEGY_DEFAULTS["long_rsi_min"], STRATEGY_DEFAULTS["long_rsi_max"]
+    if out["short_rsi_min"] >= out["short_rsi_max"]:
+        out["short_rsi_min"], out["short_rsi_max"] = STRATEGY_DEFAULTS["short_rsi_min"], STRATEGY_DEFAULTS["short_rsi_max"]
     # Motor de riesgo
     out["risk_dd_block_pct"] = max(0.0, min(float(out["risk_dd_block_pct"]), 50.0))
     out["risk_reserve_pct"] = max(0.0, min(float(out["risk_reserve_pct"]), 80.0))
@@ -573,9 +589,9 @@ AGENTIC_PRESETS = {
             "tp1_rr_frac": 0.45,
             "leverage": 1,
             "momentum_grace_bars": 8,
-            "cooldown_bars": 6,
+            "cooldown_bars": 4,
             "cooldown_loss_mult": 3.0,
-            "max_ext_atr": 1.5,
+            "max_ext_atr": 1.25,
             "min_body_ratio": 0.35,
             "trail_atr_mult": 2.5,
             "risk_reserve_pct": 15.0,
@@ -591,22 +607,22 @@ AGENTIC_PRESETS = {
         "name": "Estandar (Equilibrado / Laya 1x)",
         "description": "Balance optimo entre frecuencia y proteccion, apalancamiento seguro 1x y comisiones Maker.",
         "params": {
-            "min_signal_score": 60.0,
-            "sl_atr_mult": 1.4,
-            "tp_rr": 2.2,
+            "min_signal_score": 70.0,
+            "sl_atr_mult": 1.6,
+            "tp_rr": 2.5,
             "tp1_rr_frac": 0.5,
             "leverage": 1,
             "momentum_grace_bars": 7,
-            "cooldown_bars": 3,
-            "cooldown_loss_mult": 2.0,
-            "max_ext_atr": 2.0,
+            "cooldown_bars": 4,
+            "cooldown_loss_mult": 2.5,
+            "max_ext_atr": 1.25,
             "min_body_ratio": 0.25,
             "trail_atr_mult": 2.0,
             "risk_reserve_pct": 10.0,
             "risk_dd_block_pct": 8.0,
             "min_sl_pct": 0.0035,
             "max_sl_pct": 0.025,
-            "ctx_filter": False,
+            "ctx_filter": True,
             "maker_entry": True,
             "tp_sl_mode": "atr",
         }
@@ -615,15 +631,15 @@ AGENTIC_PRESETS = {
         "name": "Agresivo (Scalp rapido / Alta frecuencia)",
         "description": "Entradas mas dinamicas con targets mas cenidos y proteccion anti-ruido.",
         "params": {
-            "min_signal_score": 62.0,
-            "sl_atr_mult": 1.25,
-            "tp_rr": 1.9,
+            "min_signal_score": 70.0,
+            "sl_atr_mult": 1.6,
+            "tp_rr": 2.5,
             "tp1_rr_frac": 0.5,
             "leverage": 2,
             "momentum_grace_bars": 4,
-            "cooldown_bars": 2,
-            "cooldown_loss_mult": 1.5,
-            "max_ext_atr": 2.2,
+            "cooldown_bars": 4,
+            "cooldown_loss_mult": 2.5,
+            "max_ext_atr": 1.25,
             "min_body_ratio": 0.20,
             "trail_atr_mult": 1.6,
             "risk_reserve_pct": 5.0,
@@ -639,18 +655,18 @@ AGENTIC_PRESETS = {
         "name": "High-Alpha ($50 Max Profit / Low Risk)",
         "description": "Configuracion optimizada para $50 USD: R:R 2.4, TP1 al 70%, Break-Even rapido, filtro estricto MTF 1h y apalancamiento 3x.",
         "params": {
-            "min_signal_score": 65.0,
-            "sl_atr_mult": 1.3,
-            "tp_rr": 2.4,
+            "min_signal_score": 70.0,
+            "sl_atr_mult": 1.6,
+            "tp_rr": 2.5,
             "tp1_rr_frac": 0.65,
-            "tp1_size_pct": 0.5,
+            "tp1_size_pct": 0.35,
             "break_even": True,
             "leverage": 3,
             "momentum_grace_bars": 7,
             "momentum_min_strength": 85,
-            "cooldown_bars": 3,
-            "cooldown_loss_mult": 2.0,
-            "max_ext_atr": 1.8,
+            "cooldown_bars": 4,
+            "cooldown_loss_mult": 2.5,
+            "max_ext_atr": 1.25,
             "min_body_ratio": 0.25,
             "trail_atr_mult": 1.8,
             "risk_reserve_pct": 10.0,
@@ -701,6 +717,10 @@ CONFIG_SPEC = {
     "sl_slip_atr":           ("float", 0.0, 10.0),
     # Capa cuantitativa
     "min_signal_score":      ("float", 0.0, 100.0),
+    "long_rsi_min":          ("float", 0.0, 100.0),
+    "long_rsi_max":          ("float", 0.0, 100.0),
+    "short_rsi_min":         ("float", 0.0, 100.0),
+    "short_rsi_max":         ("float", 0.0, 100.0),
     # Motor de riesgo formal
     "risk_dd_block_pct":     ("float", 0.0, 50.0),
     "risk_reserve_pct":      ("float", 0.0, 80.0),
@@ -740,6 +760,8 @@ CONFIG_BLOCK = {
     "cooldown_loss_mult": "strategy", "max_ext_atr": "strategy", "min_body_ratio": "strategy",
     "sl_slip_atr": "strategy",
     "min_signal_score": "strategy",
+    "long_rsi_min": "strategy", "long_rsi_max": "strategy",
+    "short_rsi_min": "strategy", "short_rsi_max": "strategy",
     "risk_dd_block_pct": "strategy",
     "risk_reserve_pct": "strategy",
     "risk_max_exposure": "strategy",
@@ -958,11 +980,17 @@ class Market:
         last = self.candles[-1]["close"]
         prev = self.candles[-2]["close"]
         l_ema = ema_f > ema_s
-        l_rsi = rsi is not None and 50 < rsi < 70
+        # Rango de RSI por dirección (afinado en vivo: LONG 52-64 evita comprar
+        # el techo 68-69; SHORT 36-48 evita vender el suelo 31-33 pre-rebote).
+        l_min = float(self.params.get("long_rsi_min", STRATEGY_DEFAULTS["long_rsi_min"]) or 0.0)
+        l_max = float(self.params.get("long_rsi_max", STRATEGY_DEFAULTS["long_rsi_max"]) or 100.0)
+        s_min = float(self.params.get("short_rsi_min", STRATEGY_DEFAULTS["short_rsi_min"]) or 0.0)
+        s_max = float(self.params.get("short_rsi_max", STRATEGY_DEFAULTS["short_rsi_max"]) or 100.0)
+        l_rsi = rsi is not None and l_min < rsi < l_max
         l_vol = vr > self.params["vol_factor"]
         l_candle = last > prev
         s_ema = ema_f < ema_s
-        s_rsi = rsi is not None and 30 < rsi < 50
+        s_rsi = rsi is not None and s_min < rsi < s_max
         s_vol = vr > self.params["vol_factor"]
         s_candle = last < prev
         # --- Anti-persecución: no perseguir movimientos extendidos ni entradas
@@ -3090,16 +3118,24 @@ class Manager:
                         self.cfg.setdefault(block, {})[key] = val
                     else:
                         self.cfg[key] = val
-            # 3) Espejo por simulador: los sims tienen COPIA propia de params
-            #    (con herencia de presets), así que cada cambio en vivo hay
-            #    que trasladarlo a la copia de cada uno (respetando las
-            #    claves fijadas por preset).
+            # 3) Espejo por simulador: los sims tienen COPIA propia de params,
+            #    así que cada cambio en vivo hay que trasladarlo a la copia de
+            #    cada uno. FIX (Mejora 3): update_config AHORA SOBRESCRIBE las
+            #    claves fijadas por preset (sim._own). Antes `if not in own`
+            #    ignoraba en silencio p.ej. momentum_exit / sl_atr_mult /
+            #    min_signal_score en sim-1,2,4,6 (sus presets las habían
+            #    bloqueado), y los ajustes del dashboard no llegaban a 4 de 6
+            #    sims. La intención del preset es solo el arranque: lo que el
+            #    operador ajusta en vivo manda sobre toda la flota, y la clave
+            #    sale de _own para que el preset deje de bloquearla.
             for sim in self.simulators.values():
-                own = getattr(sim, "_own", set())
+                own = getattr(sim, "_own", None)
                 for key, val in applied.items():
                     pname = CONFIG_PARAM.get(key, key)
-                    if pname in sim.params and pname not in own:
+                    if pname in sim.params:
                         sim.params[pname] = val
+                        if own is not None and pname in own:
+                            own.discard(pname)
             # Recalcular indicadores y señal con los nuevos parámetros
             if applied:
                 for sim in self.simulators.values():
@@ -3842,21 +3878,21 @@ class Manager:
             "max_pos": pos_usd,
             "max_open": n_pairs,
             "max_daily_loss": round(sim.capital * 0.15, 2),  # 15% drawdown max
-            "sl_atr_mult": 1.4,
-            "tp_rr": 2.2,
+            "sl_atr_mult": 1.6,
+            "tp_rr": 2.5,
             "tp1_rr_frac": 0.5,
-            "tp1_size_pct": 0.5,
+            "tp1_size_pct": 0.35,
             "break_even": True,
             "trail_atr_mult": 2.0,
-            "momentum_exit": True,
+            "momentum_exit": False,
             "momentum_grace_bars": 7,
             "momentum_min_strength": 75,
-            "cooldown_bars": 3,
-            "cooldown_loss_mult": 2.0,
-            "max_ext_atr": 2.0,
+            "cooldown_bars": 4,
+            "cooldown_loss_mult": 2.5,
+            "max_ext_atr": 1.25,
             "min_body_ratio": 0.25,
             "maker_entry": True,
-            "min_signal_score": 65,
+            "min_signal_score": 70,
             "ctx_filter": True,
         })
         sim.add_task("system", f"Parámetros MULTI-CRYPTO ({n_pairs} pares simultáneos, ${pos_usd}/pos, 1x) aplicados a {sid}.")
@@ -3889,12 +3925,12 @@ class Manager:
             # Capa cuant: targets por ATR (reemplaza a los % fijos)
             "tp_sl_mode": "atr",
             "leverage": 1,
-            "sl_atr_mult": 1.25,
-            "tp_rr": 1.9,
+            "sl_atr_mult": 1.6,
+            "tp_rr": 2.5,
             "tp1_rr_frac": 0.45,
             "min_sl_pct": 0.003,
             "max_sl_pct": 0.02,
-            "min_signal_score": 62,
+            "min_signal_score": 70,
             "max_pos": 10.0,        # $10 por trade
             "max_daily_loss": 5.0, # 5% límite diario
             "max_open": 1,
@@ -3905,16 +3941,16 @@ class Manager:
             "trail_max_pct": 0.04,
             # Salidas rápidas
             "tp1_pct": 0.012,       # fallback modo "fixed"
-            "tp1_size_pct": 0.5,    # Cierra 50% en TP1
+            "tp1_size_pct": 0.35,   # 35% en TP1 (antes 50%: asimetría negativa post-TP1)
             "break_even": True,
-            "momentum_exit": True,
+            "momentum_exit": False,
             "momentum_grace_bars": 7,   # Gracia suficiente contra falsos rebotes
             "momentum_min_strength": 85,
             "time_stop_bars": 24,   # 2h para dejar desarrollar
-            "cooldown_bars": 2,
-            "cooldown_loss_mult": 1.5,
+            "cooldown_bars": 4,
+            "cooldown_loss_mult": 2.5,
             # Filtros activos para mejorar WR
-            "max_ext_atr": 2.2,
+            "max_ext_atr": 1.25,
             "min_body_ratio": 0.25,
             "sl_slip_atr": 0.15,
             "ctx_filter": True,    # Filtro MTF activo
@@ -3954,16 +3990,16 @@ class Manager:
             "trail_max_pct": 0.10,
             # TP1 conservador
             "tp1_pct": 0.03,        # fallback modo "fixed"
-            "tp1_size_pct": 0.4,
+            "tp1_size_pct": 0.35,
             "break_even": True,
-            "momentum_exit": True,
+            "momentum_exit": False,
             "momentum_grace_bars": 12,  # Paciencia en swing
             "momentum_min_strength": 75,
             "time_stop_bars": 48,       # 4h: el swing necesita margen para desarrollar
             "cooldown_bars": 6,         # Cooldown mayor
             "cooldown_loss_mult": 3.0,
             # Filtros estrictos
-            "max_ext_atr": 1.5,         # No perseguir extensiones
+            "max_ext_atr": 1.25,        # No perseguir extensiones (fresh trend, no tardía)
             "min_body_ratio": 0.4,      # Velas con cuerpo
             "sl_slip_atr": 0.25,
             "ctx_filter": True,         # Filtro contexto activo
@@ -4003,16 +4039,16 @@ class Manager:
             "trail_max_pct": 0.05,
             # TP1 rápido
             "tp1_pct": 0.015,       # fallback modo "fixed"
-            "tp1_size_pct": 0.5,
+            "tp1_size_pct": 0.35,
             "break_even": True,
-            "momentum_exit": True,
+            "momentum_exit": False,
             "momentum_grace_bars": 7,
             "momentum_min_strength": 75,
             "time_stop_bars": 32,   # 32 velas 5m (~2.6h)
-            "cooldown_bars": 3,
-            "cooldown_loss_mult": 2.0,
+            "cooldown_bars": 4,
+            "cooldown_loss_mult": 2.5,
             # Filtros equilibrados
-            "max_ext_atr": 2.0,
+            "max_ext_atr": 1.25,
             "min_body_ratio": 0.3,
             "sl_slip_atr": 0.2,
             "ctx_filter": True,    # Filtro MTF activo
@@ -4124,7 +4160,7 @@ class Backtester:
 # ----------------------------------------------------------------------------
 
 cfg = load_config()
-print(f"[STARTUP] Server version: 2026-10-29-04-30 - Context in snapshot enabled")
+print(f"[STARTUP] Server version: 2026-11-06-improvements - MTF fresh-trend filters (ctx_filter+RSI range+max_ext 1.25), TP1 35%, SL 1.6xATR, update_config overrides presets, post-SL cooldown 4x2.5")
 manager = Manager(cfg)
 app = Flask(__name__, static_folder=None)
 
