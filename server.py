@@ -1706,19 +1706,23 @@ class Simulator:
                 cached = deep_rate["pair_cache"].get(pair)
                 if cached and now - cached[2] < deep_rate["cooldown_sec"]:
                     cached_signal, cached_result, _ = cached
-                    if cached_signal == signal and cached_result:
-                        approved, min_conf, rec, conf, reason = self._evaluate_system2_verdict(pair, signal, cached_result)
-                        if conf > 0.0 and rec != "WAIT":
-                            if not approved:
-                                self.add_task("deep", f"System 2 (cache) BLOQUEA {signal} en {pair}: {rec} (conf {conf:.0%}, req {min_conf:.0%})")
-                            else:
-                                if getattr(deep_engine, "use_adjust", False) and cached_result.get("ajuste_sl_tp"):
-                                    if not hasattr(self, "_ai_sl_tp_adjust"):
-                                        self._ai_sl_tp_adjust = {}
-                                    self._ai_sl_tp_adjust[pair] = cached_result["ajuste_sl_tp"]
-                            return approved
-                        # Cache con 0% conf o WAIT -> no bloquear, fallback a System 1
-                return True  # En cooldown -> fallback a System 1
+                    if cached_signal != signal:
+                        # Veredicto vigente es para la dirección contraria: esperar
+                        # a que expire el cooldown y se analice la nueva dirección.
+                        return False
+                    approved, min_conf, rec, conf, reason = self._evaluate_system2_verdict(pair, signal, cached_result)
+                    if not approved:
+                        # Un WAIT/ABSTAIN real (conf > 0) bloquea durante todo el
+                        # cooldown; antes se perdía y el siguiente tick abría igual.
+                        self._note_once(pair, "deep_cache", "deep",
+                                        f"System 2 (cache) BLOQUEA {signal} en {pair}: {rec} (conf {conf:.0%}, req {min_conf:.0%})")
+                    elif getattr(deep_engine, "use_adjust", False) and cached_result.get("ajuste_sl_tp"):
+                        if not hasattr(self, "_ai_sl_tp_adjust"):
+                            self._ai_sl_tp_adjust = {}
+                        self._ai_sl_tp_adjust[pair] = cached_result["ajuste_sl_tp"]
+                    return approved
+                # Sin veredicto real en cooldown (error del LLM) -> fallback a System 1
+                return True
 
             # Todo OK: incrementar contadores y proceder
             deep_rate["calls_minute"] += 1
@@ -1742,10 +1746,13 @@ class Simulator:
                             self._ai_sl_tp_adjust = {}
                         self._ai_sl_tp_adjust[pair] = result["ajuste_sl_tp"]
 
-                # Solo cachear si el resultado es útil (conf > 0 y no WAIT)
-                if conf > 0.0 and rec != "WAIT":
+                # Cachear todo veredicto real (conf > 0), incluido WAIT/ABSTAIN.
+                # conf == 0 es el fallback por error del LLM: no se cachea.
+                if conf > 0.0:
                     with deep_lock:
                         deep_rate["pair_cache"][pair] = (signal, result, now)
+                else:
+                    return True  # fallback por error del LLM: no bloquea
                 return approved
         except Exception as e:
             self.add_task("deep", f"System 2 error en {pair}: {e}")
